@@ -1,0 +1,134 @@
+# Example 1: Insecure File Upload (Python Flask)
+from flask import Flask, request, redirect
+import os
+
+app = Flask(__name__)
+
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return 'No file part'
+    file = request.files['file']
+    if file.filename == '':
+        return 'No selected file'
+    if file:
+        file.save(os.path.join(UPLOAD_FOLDER, file.filename)) # Vulnerable line
+        return redirect('/')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+# Example 2: Command Injection (Python)
+import subprocess
+
+def execute_command(user_input):
+    command = "ping -c 1 " + user_input # Vulnerable line
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    process.wait()
+    return process.returncode
+
+user_input = input("Enter a host to ping: ")
+result = execute_command(user_input)
+print(f"Result: {result}")
+
+# Example 3: Integer Overflow (C)
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s <number>\n", argv[0]);
+        return 1;
+    }
+
+    int size = atoi(argv[1]); // Vulnerable line: potential overflow
+    int *array = (int *)malloc(size * sizeof(int));
+
+    if (array == NULL) {
+        printf("Memory allocation failed.\n");
+        return 1;
+    }
+
+    // ... use the array ...
+
+    free(array);
+    return 0;
+}
+
+# Example 4: XML External Entity (XXE) Injection (Python)
+import xml.etree.ElementTree as ET
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/parse_xml', methods=['POST'])
+def parse_xml():
+    xml_data = request.data
+    tree = ET.fromstring(xml_data) # Vulnerable line
+    # ... process the XML ...
+    return "XML processed"
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+# Example 5: Race Condition (Python)
+import threading
+import time
+
+counter = 0
+
+def increment():
+    global counter
+    for _ in range(100000):
+        temp = counter
+        time.sleep(0.0001) # Simulate some work
+        counter = temp + 1
+
+threads = []
+for _ in range(2):
+    thread = threading.Thread(target=increment)
+    threads.append(thread)
+    thread.start()
+
+for thread in threads:
+    thread.join()
+
+print("Final counter:", counter) # Result may be less than 200000 due to race condition
+
+#Example 6: Deserialization of untrusted data (Java)
+import java.io.*;
+
+public class DeserializeExample {
+    public static void main(String[] args) {
+        String serializedData = args[0]; //Untrusted input
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(serializedData.getBytes());
+             ObjectInputStream ois = new ObjectInputStream(bis)) {
+            Object obj = ois.readObject(); //Vulnerable line
+            System.out.println("Deserialized object: " + obj);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+# Example 7: Path Traversal (Java)
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class FileRead {
+    public static void main(String[] args) {
+        String filename = args[0]; //Untrusted input
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) { //Vulnerable line
+            String line;
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
