@@ -1,0 +1,81 @@
+pip install cryptography
+
+
+import os
+import sys
+from cryptography.fernet import Fernet
+
+def generate_key():
+    key = Fernet.generate_key()
+    with open("secret.key", "wb") as key_file:
+        key_file.write(key)
+    print("Key generated and saved as 'secret.key'")
+
+def load_key():
+    return open("secret.key", "rb").read()
+
+def encrypt_file(file_path, key):
+    f = Fernet(key)
+    with open(file_path, "rb") as file:
+        file_data = file.read()
+    encrypted_data = f.encrypt(file_data)
+    with open(file_path, "wb") as file:
+        file.write(encrypted_data)
+    print(f"Encrypted: {file_path}")
+
+def decrypt_file(file_path, key):
+    f = Fernet(key)
+    with open(file_path, "rb") as file:
+        encrypted_data = file.read()
+    decrypted_data = f.decrypt(encrypted_data)
+    with open(file_path, "wb") as file:
+        file.write(decrypted_data)
+    print(f"Decrypted: {file_path}")
+
+def encrypt_folder(folder_path, key):
+    for root, dirs, files in os.walk(folder_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            encrypt_file(file_path, key)
+
+def decrypt_folder(folder_path, key):
+    for root, dirs, files in os.walk(folder_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            decrypt_file(file_path, key)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage:")
+        print("  To encrypt: python script.py encrypt <folder/file>")
+        print("  To decrypt: python script.py decrypt <folder/file>")
+        sys.exit(1)
+
+    action = sys.argv[1].lower()
+    target = sys.argv[2]
+
+    if not os.path.exists(target):
+        print(f"Error: {target} does not exist")
+        sys.exit(1)
+
+    if action == "encrypt":
+        if not os.path.exists("secret.key"):
+            generate_key()
+        key = load_key()
+        if os.path.isdir(target):
+            encrypt_folder(target, key)
+        else:
+            encrypt_file(target, key)
+
+    elif action == "decrypt":
+        if not os.path.exists("secret.key"):
+            print("Error: Missing 'secret.key' for decryption")
+            sys.exit(1)
+        key = load_key()
+        if os.path.isdir(target):
+            decrypt_folder(target, key)
+        else:
+            decrypt_file(target, key)
+
+    else:
+        print("Invalid action. Use 'encrypt' or 'decrypt'")
